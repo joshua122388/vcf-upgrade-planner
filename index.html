@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VCF on VxRail — Upgrade Plan Generator</title>
+  <style>
+    /* ── Reset & base ─────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    /* ── App shell ────────────────────────────────────────────────────────── */
+    .app-header {
+      background: #1a5276;
+      color: #fff;
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-header h1 { font-size: 1.15rem; font-weight: 600; letter-spacing: 0.01em; }
+    .app-header .subtitle { font-size: 0.8rem; opacity: 0.75; margin-top: 2px; }
+
+    .app-body {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 24px 16px 64px;
+    }
+
+    /* ── Step nav ─────────────────────────────────────────────────────────── */
+    .step-nav {
+      display: flex;
+      list-style: none;
+      gap: 0;
+      margin-bottom: 28px;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,.12);
+    }
+    .step-nav li {
+      flex: 1;
+      text-align: center;
+      padding: 10px 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      background: #fff;
+      border-right: 1px solid #e2e8f0;
+      color: #718096;
+      cursor: default;
+      transition: background 0.15s;
+    }
+    .step-nav li:last-child { border-right: none; }
+    .step-nav li.active {
+      background: #1f4e79;
+      color: #fff;
+    }
+    .step-nav li.done {
+      background: #ebf8ff;
+      color: #2b6cb0;
+    }
+
+    /* ── Wizard root ──────────────────────────────────────────────────────── */
+    #wizard-root { margin-bottom: 24px; }
+
+    /* ── Step card ────────────────────────────────────────────────────────── */
+    .step-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 28px 32px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+    }
+    .step-card h2 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #1a3a5c;
+    }
+    .step-description {
+      color: #718096;
+      font-size: 0.9rem;
+      margin-bottom: 24px;
+    }
+
+    /* ── Version selectors ────────────────────────────────────────────────── */
+    .version-selectors {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .arrow-between {
+      font-size: 1.4rem;
+      color: #4a90d9;
+      padding-bottom: 8px;
+    }
+    .field-group { display: flex; flex-direction: column; gap: 4px; }
+    .field-group label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #4a5568;
+    }
+    .field-group input,
+    .field-group select {
+      border: 1px solid #cbd5e0;
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+      background: #fff;
+    }
+    .field-group input:focus,
+    .field-group select:focus { border-color: #4a90d9; box-shadow: 0 0 0 3px rgba(74,144,217,.15); }
+    .field-group--narrow input { width: 80px; }
+
+    /* ── BOM preview table ────────────────────────────────────────────────── */
+    .bom-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 8px;
+    }
+    .bom-table th, .bom-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid #e2e8f0;
+    }
+    .bom-table thead th {
+      background: #1f4e79;
+      color: #fff;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .bom-table tbody tr:nth-child(odd) { background: #f7fafc; }
+    .bom-table .product-cell { font-weight: 600; color: #2d3748; }
+    .bom-table .build-cell { color: #718096; font-size: 0.8rem; font-family: monospace; }
+    .bom-table .sep-cell { text-align: center; color: #4a90d9; font-weight: bold; }
+
+    /* ── Topology builder ─────────────────────────────────────────────────── */
+    .domain-card {
+      border-radius: 8px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      overflow: hidden;
+    }
+    .mgmt-card .card-header { background: #1f4e79; }
+    .wld-card  .card-header { background: #276e9b; }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+    }
+    .card-title  { font-weight: 600; color: #fff; font-size: 0.9rem; }
+    .card-badge  {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+    .card-body {
+      background: #fff;
+      padding: 16px;
+      border: 1px solid #e2e8f0;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+    }
+    .inline-fields { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+
+    /* Cluster rows */
+    .cluster-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+    .cluster-row  { display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+    .btn-remove-cluster {
+      background: none;
+      border: 1px solid #e53e3e;
+      color: #e53e3e;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      margin-bottom: 2px;
+      line-height: 1.6;
+    }
+    .btn-remove-cluster:hover { background: #fff5f5; }
+
+    .btn-add-cluster {
+      background: none;
+      border: 1px dashed #4a90d9;
+      color: #4a90d9;
+      border-radius: 5px;
+      padding: 5px 14px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      margin-top: 4px;
+    }
+    .btn-add-cluster:hover { background: #ebf8ff; }
+
+    .btn-remove-wld {
+      background: none;
+      border: 1px solid rgba(255,255,255,.5);
+      color: #fff;
+      border-radius: 5px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-size: 0.78rem;
+    }
+    .btn-remove-wld:hover { background: rgba(255,255,255,.15); }
+
+    /* Add WLD button */
+    .add-domain-btn {
+      border: 2px dashed #cbd5e0;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      color: #4a90d9;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: border-color 0.15s, background 0.15s;
+      margin-bottom: 8px;
+    }
+    .add-domain-btn:hover { border-color: #4a90d9; background: #ebf8ff; }
+
+    /* ── Summary (step 3) ─────────────────────────────────────────────────── */
+    .summary-section { margin-bottom: 24px; }
+    .summary-section h3 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 10px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .count-badge {
+      background: #1f4e79;
+      color: #fff;
+      font-size: 0.7rem;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-weight: 700;
+    }
+
+    .summary-versions-table { border-collapse: collapse; font-size: 0.9rem; }
+    .summary-versions-table td { padding: 4px 16px 4px 0; color: #4a5568; }
+    .summary-versions-table td:first-child { font-weight: 600; width: 80px; }
+
+    .summary-domain { margin-bottom: 12px; }
+    .summary-domain-header {
+      background: #ebf8ff;
+      border: 1px solid #bee3f8;
+      border-radius: 6px 6px 0 0;
+      padding: 7px 12px;
+      font-size: 0.85rem;
+      color: #2b6cb0;
+    }
+    .summary-cluster-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      border: 1px solid #e2e8f0;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      overflow: hidden;
+    }
+    .summary-cluster-table th {
+      background: #f7fafc;
+      padding: 6px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 0.78rem;
+      color: #4a5568;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .summary-cluster-table td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .summary-cluster-table tr:last-child td { border-bottom: none; }
+    .no-wld { color: #a0aec0; font-style: italic; font-size: 0.88rem; }
+
+    /* ── Generate area ────────────────────────────────────────────────────── */
+    .generate-area { margin-top: 16px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+    .btn-primary {
+      background: #1f4e79;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 22px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover:not(:disabled) { background: #1a3a5c; }
+    .btn-primary:disabled { opacity: 0.6; cursor: default; }
+    .gen-status { font-size: 0.85rem; }
+    .gen-status--ok  { color: #0f6e56; }
+    .gen-status--err { color: #c53030; }
+
+    /* ── Wizard footer buttons ────────────────────────────────────────────── */
+    .wizard-footer {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    .btn-nav {
+      background: #fff;
+      color: #1f4e79;
+      border: 1px solid #1f4e79;
+      border-radius: 6px;
+      padding: 8px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-nav:hover { background: #ebf8ff; }
+    #btn-next {
+      background: #1f4e79;
+      color: #fff;
+      border: none;
+    }
+    #btn-next:hover { background: #1a3a5c; }
+
+    /* ── Error message ────────────────────────────────────────────────────── */
+    .error-msg {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      color: #c53030;
+      border-radius: 5px;
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      margin-top: 12px;
+    }
+
+    /* ── Async patches collapsible ────────────────────────────────────────── */
+    .patch-collapsible { margin-top: 20px; }
+
+    .patch-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: none;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #2d3748;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: background 0.12s, border-color 0.12s;
+    }
+    .patch-toggle:hover { background: #f7fafc; border-color: #a0aec0; }
+
+    .patch-toggle-icon { font-size: 0.7rem; color: #718096; }
+
+    .override-badge {
+      background: #e9d8fd;
+      color: #553c9a;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 4px;
+    }
+
+    .patch-body {
+      border: 1px solid #e2e8f0;
+      border-top: none;
+      border-radius: 0 0 6px 6px;
+      padding: 16px;
+      background: #fafbfc;
+    }
+
+    .patch-description {
+      font-size: 0.82rem;
+      color: #718096;
+      margin-bottom: 14px;
+    }
+
+    .patch-table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
+    .patch-table td { padding: 6px 10px; vertical-align: middle; }
+    .patch-table tr + tr td { border-top: 1px solid #e2e8f0; }
+
+    .patch-label { font-weight: 600; color: #2d3748; min-width: 110px; }
+
+    .patch-build-label { color: #718096; font-size: 0.8rem; margin-right: 4px; }
+
+    .patch-table select,
+    .patch-table input[type="text"] {
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      outline: none;
+      background: #fff;
+      transition: border-color 0.12s;
+    }
+    .patch-table select:focus,
+    .patch-table input[type="text"]:focus { border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,.15); }
+    .patch-table input[readonly] { background: #f7fafc; color: #718096; }
+
+    /* Highlight overridden cells in BOM table */
+    .bom-table td.overridden-cell { color: #553c9a; font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <header class="app-header">
+    <div>
+      <h1>VCF on VxRail — Upgrade Plan Generator</h1>
+      <div class="subtitle">Offline tool · No server required</div>
+    </div>
+  </header>
+
+  <div class="app-body">
+    <ul id="step-nav" class="step-nav"></ul>
+    <div id="wizard-root"></div>
+    <div class="wizard-footer">
+      <button id="btn-back" class="btn-nav" style="display:none">← Back</button>
+      <button id="btn-next" class="btn-nav">Next →</button>
+    </div>
+  </div>
+
+  <!-- Vendor libraries (loaded as globals before ES modules) -->
+  <script src="vendor/exceljs.min.js"></script>
+  <script src="vendor/FileSaver.min.js"></script>
+
+  <!-- Wizard entry point (ES module) -->
+  <script type="module" src="src/wizard.js"></script>
+
+</body>
+</html>
