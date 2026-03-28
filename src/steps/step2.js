@@ -37,6 +37,13 @@ function renderTopology(root) {
           <label>ESXi hosts</label>
           <input type="number" id="mgmt-hosts" value="${state.mgmtDomain.hostCount}" min="1" max="999" />
         </div>
+        <div class="field-group">
+          <label for="mgmt-nsx-fed">NSX Federation</label>
+          <select id="mgmt-nsx-fed">
+            <option value="no"  ${!state.mgmtDomain.nsxFederation ? 'selected' : ''}>No</option>
+            <option value="yes" ${ state.mgmtDomain.nsxFederation ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
       </div>
     </div>
   `;
@@ -55,6 +62,9 @@ function renderTopology(root) {
     const n = parseInt(e.target.value, 10);
     state.mgmtDomain.hostCount = isNaN(n) ? '' : n;
     clearError();
+  });
+  mgmtCard.querySelector('#mgmt-nsx-fed').addEventListener('change', e => {
+    state.mgmtDomain.nsxFederation = e.target.value === 'yes';
   });
 
   // ── WLD cards ─────────────────────────────────────────────────────────────
@@ -86,9 +96,18 @@ function buildWLDCard(wld, root) {
       <button class="btn-remove-wld" data-wld="${wld.id}" title="Remove this workload domain">✕ Remove WLD</button>
     </div>
     <div class="card-body">
-      <div class="field-group" style="max-width:320px; margin-bottom:1rem;">
-        <label>Domain name</label>
-        <input type="text" class="wld-name" data-wld="${wld.id}" value="${esc(wld.name)}" maxlength="64" />
+      <div class="inline-fields">
+        <div class="field-group" style="max-width:320px;">
+          <label>Domain name</label>
+          <input type="text" class="wld-name" data-wld="${wld.id}" value="${esc(wld.name)}" maxlength="64" />
+        </div>
+        <div class="field-group">
+          <label for="wld-nsx-fed-${wld.id}">NSX Federation</label>
+          <select id="wld-nsx-fed-${wld.id}" data-wld-id="${wld.id}">
+            <option value="no"  ${!wld.nsxFederation ? 'selected' : ''}>No</option>
+            <option value="yes" ${ wld.nsxFederation ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
       </div>
       <div class="cluster-list" data-wld="${wld.id}">
         ${clusterRows}
@@ -101,6 +120,11 @@ function buildWLDCard(wld, root) {
   card.querySelector('.wld-name').addEventListener('input', e => {
     wld.name = e.target.value.trim();
     clearError();
+  });
+
+  // NSX Federation toggle
+  card.querySelector(`#wld-nsx-fed-${wld.id}`).addEventListener('change', e => {
+    wld.nsxFederation = e.target.value === 'yes';
   });
 
   // Remove WLD

@@ -8,7 +8,7 @@ export function renderStep3(container) {
     ? '<p class="no-wld">No workload domains defined.</p>'
     : state.workloadDomains.map(wld => `
         <div class="summary-domain">
-          <div class="summary-domain-header">VI WLD — <strong>${esc(wld.name)}</strong></div>
+          <div class="summary-domain-header">VI WLD — <strong>${esc(wld.name)}</strong>${wld.nsxFederation ? ' <span class="nsx-fed-badge">NSX Federation</span>' : ''}</div>
           <table class="summary-cluster-table">
             <thead><tr><th>Cluster</th><th>ESXi Hosts</th></tr></thead>
             <tbody>
@@ -37,7 +37,7 @@ export function renderStep3(container) {
       <div class="summary-section">
         <h3>Management Domain</h3>
         <div class="summary-domain">
-          <div class="summary-domain-header">MGMT — <strong>${esc(mgmt.name)}</strong></div>
+          <div class="summary-domain-header">MGMT — <strong>${esc(mgmt.name)}</strong>${mgmt.nsxFederation ? ' <span class="nsx-fed-badge">NSX Federation</span>' : ''}</div>
           <table class="summary-cluster-table">
             <thead><tr><th>Cluster</th><th>ESXi Hosts</th></tr></thead>
             <tbody>

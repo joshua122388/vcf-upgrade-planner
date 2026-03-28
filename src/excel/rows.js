@@ -149,7 +149,7 @@ export function buildMgmtRows(state) {
 
   const nsxData = bomRow(src, tgt, 'nsx', state);
 
-  const gmRows = state.nsxFederation ? [
+  const gmRows = state.mgmtDomain.nsxFederation ? [
     { clusterLabel: '', product: 'Active Global Manager',  ...nsxData },
     { clusterLabel: '', product: 'Standby Global Manager', ...nsxData },
   ] : [];
@@ -167,8 +167,16 @@ export function buildMgmtRows(state) {
 export function buildWLDRows(wld, state) {
   const src = BOM[state.sourceVersion];
   const tgt = BOM[state.targetVersion];
+
+  const nsxData = bomRow(src, tgt, 'nsx', state);
+  const gmRows = wld.nsxFederation ? [
+    { clusterLabel: '', product: 'Active Global Manager',  ...nsxData },
+    { clusterLabel: '', product: 'Standby Global Manager', ...nsxData },
+  ] : [];
+
   const rows = [
-    { clusterLabel: '', product: 'NSX-T',   ...bomRow(src, tgt, 'nsx',     state) },
+    ...gmRows,
+    { clusterLabel: '', product: 'NSX-T',   ...nsxData },
     { clusterLabel: '', product: 'vCenter', ...bomRow(src, tgt, 'vcenter', state) },
   ];
   for (const cl of wld.clusters) {

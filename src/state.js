@@ -11,11 +11,11 @@ export const state = {
     name: "MGMT",
     clusterName: "mgmt-cluster-1",
     hostCount: 4,
+    nsxFederation: false,
   },
   workloadDomains: [],
   generatedAt: null,
   bomOverrides: { target: {} },
-  nsxFederation: false,
 };
 
 export function resetBomOverrides() {
@@ -29,6 +29,7 @@ export function addWLD() {
   state.workloadDomains.push({
     id,
     name: `PROD${state.workloadDomains.length + 1}`,
+    nsxFederation: false,
     clusters: [{ id: uid(), name: `prod${state.workloadDomains.length + 1}-cluster-1`, hostCount: 4 }],
   });
   return id;
