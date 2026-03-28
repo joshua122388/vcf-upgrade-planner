@@ -40,6 +40,13 @@ export function renderStep1(container) {
             ${VCF_VERSIONS.map(v => `<option value="${v}" ${state.targetVersion === v ? 'selected' : ''}>${v}</option>`).join('')}
           </select>
         </div>
+        <div class="field-group">
+          <label for="sel-nsx-federation">NSX Federation</label>
+          <select id="sel-nsx-federation">
+            <option value="no"  ${!state.nsxFederation ? 'selected' : ''}>No</option>
+            <option value="yes" ${ state.nsxFederation ? 'selected' : ''}>Yes</option>
+          </select>
+        </div>
       </div>
 
       <div id="bom-preview"></div>
@@ -68,7 +75,17 @@ export function renderStep1(container) {
     if (!src && !tgt) { preview.innerHTML = ''; return; }
     const srcData = src ? BOM[src] : null;
     const tgtData = tgt ? BOM[tgt] : null;
-    const rows = PRODUCT_LABELS.map(({ key, label }) => {
+
+    const displayLabels = [...PRODUCT_LABELS];
+    if (state.nsxFederation) {
+      const nsxIdx = displayLabels.findIndex(p => p.key === 'nsx');
+      displayLabels.splice(nsxIdx, 0,
+        { key: 'nsx', label: 'Active Global Manager' },
+        { key: 'nsx', label: 'Standby Global Manager' },
+      );
+    }
+
+    const rows = displayLabels.map(({ key, label }) => {
       const sv = srcData ? srcData[key].version : '—';
       const sb = srcData ? srcData[key].build   : '—';
       const ov = state.bomOverrides.target[key];
@@ -280,6 +297,12 @@ export function renderStep1(container) {
 
     renderPatchSection();
   }
+
+  const selNsxFed = container.querySelector('#sel-nsx-federation');
+  selNsxFed.addEventListener('change', () => {
+    state.nsxFederation = selNsxFed.value === 'yes';
+    renderBomTable();
+  });
 
   selSource.addEventListener('change', updatePreview);
   selTarget.addEventListener('change', updatePreview);

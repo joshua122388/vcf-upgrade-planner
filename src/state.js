@@ -15,6 +15,7 @@ export const state = {
   workloadDomains: [],
   generatedAt: null,
   bomOverrides: { target: {} },
+  nsxFederation: false,
 };
 
 export function resetBomOverrides() {

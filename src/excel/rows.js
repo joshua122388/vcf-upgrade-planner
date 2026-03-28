@@ -147,9 +147,17 @@ export function buildMgmtRows(state) {
   const mc  = state.mgmtDomain.clusterName;
   const mh  = state.mgmtDomain.hostCount;
 
+  const nsxData = bomRow(src, tgt, 'nsx', state);
+
+  const gmRows = state.nsxFederation ? [
+    { clusterLabel: '', product: 'Active Global Manager',  ...nsxData },
+    { clusterLabel: '', product: 'Standby Global Manager', ...nsxData },
+  ] : [];
+
   return [
     { clusterLabel: '',          product: 'SDDC Manager',         ...bomRow(src, tgt, 'sddc',    state) },
-    { clusterLabel: '',          product: 'NSX-T',                 ...bomRow(src, tgt, 'nsx',     state) },
+    ...gmRows,
+    { clusterLabel: '',          product: 'NSX-T',                 ...nsxData },
     { clusterLabel: '',          product: 'vCenter',               ...bomRow(src, tgt, 'vcenter', state) },
     { clusterLabel: `"${mc}"`,   product: 'VxRail Manager',        ...bomRow(src, tgt, 'vxrail',  state) },
     { clusterLabel: `"${mc}"`,   product: `ESXi (0/${mh})`,        ...bomRow(src, tgt, 'esxi',    state) },
