@@ -39,7 +39,7 @@ export const BOM = {
     vxrail:  { version: "8.0.361",        build: "29253789" },
     esxi:    { version: "8.0 Update 3g",  build: "24859861" },
   },
-  "5.2.2": {
+  "5.2.3": {
     sddc:    { version: "5.2.3.0",       build: "25219033" },
     nsx:     { version: "4.2.3.3",       build: "25171318" },
     vcenter: { version: "8.0 Update 3i",  build: "25197330" },
