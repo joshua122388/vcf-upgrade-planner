@@ -2,8 +2,8 @@ import {
   COLORS, COLUMNS,
   thinBorder, solidFill,
   TITLE_FONT, HEADER_FONT, DOMAIN_FONT,
-  PRODUCT_FONT, CELL_FONT, CLUSTER_LABEL_FONT,
-  HEALTHY_FONT, PENDING_FONT, CENTER_ALIGN,
+  PRODUCT_FONT, CELL_FONT, CLUSTER_HEADER_FONT,
+  HEALTHY_FONT, PENDING_FONT, CENTER_ALIGN, INDENT_ALIGN,
 } from './styles.js';
 import { BOM } from '../bom.js';
 
@@ -58,25 +58,31 @@ export function writeDomainGroup(ws, domainLabel, dataRows, startRow, altBackgro
   const bg = altBackground ? COLORS.ALT_BG : COLORS.WHITE;
   let   r  = startRow;
 
-  for (const { clusterLabel, product, curVer, curBuild, tgtVer, tgtBuild } of dataRows) {
-    const isCluster = Boolean(clusterLabel);
-    const rowBg     = isCluster ? COLORS.CLUSTER_BG : bg;
-    const exRow     = ws.getRow(r);
+  for (const rowData of dataRows) {
+    const exRow = ws.getRow(r);
 
     // Col A: domain placeholder (will be merged + styled after loop)
     const domCell = exRow.getCell(1);
     domCell.border = thinBorder();
-    if (isCluster) {
-      domCell.value     = clusterLabel;
-      domCell.font      = CLUSTER_LABEL_FONT;
-      domCell.fill      = solidFill(COLORS.CLUSTER_BG);
-      domCell.alignment = CENTER_ALIGN;
+
+    if (rowData.clusterHeader) {
+      // Cluster name banner row — VxRail Manager / ESXi rows nest under it.
+      ws.mergeCells(r, 2, r, 8);
+      const clCell = exRow.getCell(2);
+      clCell.value = rowData.clusterHeader;
+      styleCell(clCell, { font: CLUSTER_HEADER_FONT, fill: solidFill(COLORS.CLUSTER_BG), alignment: CENTER_ALIGN, border: thinBorder() });
+      exRow.height = 18;
+      r++;
+      continue;
     }
 
-    // Col B: Product
+    const { product, indent, curVer, curBuild, tgtVer, tgtBuild } = rowData;
+    const rowBg = indent ? COLORS.CLUSTER_BG : bg;
+
+    // Col B: Product (indented when nested under a cluster header)
     const prodCell = exRow.getCell(2);
     prodCell.value = product;
-    styleCell(prodCell, { font: PRODUCT_FONT, fill: solidFill(rowBg), alignment: CENTER_ALIGN, border: thinBorder() });
+    styleCell(prodCell, { font: PRODUCT_FONT, fill: solidFill(rowBg), alignment: indent ? INDENT_ALIGN : CENTER_ALIGN, border: thinBorder() });
 
     // Col C: Current Version
     const cvCell = exRow.getCell(3);
@@ -150,17 +156,18 @@ export function buildMgmtRows(state) {
   const nsxData = bomRow(src, tgt, 'nsx', state);
 
   const gmRows = state.mgmtDomain.nsxFederation ? [
-    { clusterLabel: '', product: 'Active Global Manager',  ...nsxData },
-    { clusterLabel: '', product: 'Standby Global Manager', ...nsxData },
+    { product: 'Active Global Manager',  ...nsxData },
+    { product: 'Standby Global Manager', ...nsxData },
   ] : [];
 
   return [
-    { clusterLabel: '',          product: 'SDDC Manager',         ...bomRow(src, tgt, 'sddc',    state) },
+    { product: 'SDDC Manager', ...bomRow(src, tgt, 'sddc',    state) },
     ...gmRows,
-    { clusterLabel: '',          product: 'NSX-T',                 ...nsxData },
-    { clusterLabel: '',          product: 'vCenter',               ...bomRow(src, tgt, 'vcenter', state) },
-    { clusterLabel: `"${mc}"`,   product: 'VxRail Manager',        ...bomRow(src, tgt, 'vxrail',  state) },
-    { clusterLabel: `"${mc}"`,   product: `ESXi (0/${mh})`,        ...bomRow(src, tgt, 'esxi',    state) },
+    { product: 'NSX-T',        ...nsxData },
+    { product: 'vCenter',      ...bomRow(src, tgt, 'vcenter', state) },
+    { clusterHeader: mc },
+    { product: 'VxRail Manager', indent: true, ...bomRow(src, tgt, 'vxrail', state) },
+    { product: `ESXi (0/${mh})`, indent: true, ...bomRow(src, tgt, 'esxi',   state) },
   ];
 }
 
@@ -170,18 +177,19 @@ export function buildWLDRows(wld, state) {
 
   const nsxData = bomRow(src, tgt, 'nsx', state);
   const gmRows = wld.nsxFederation ? [
-    { clusterLabel: '', product: 'Active Global Manager',  ...nsxData },
-    { clusterLabel: '', product: 'Standby Global Manager', ...nsxData },
+    { product: 'Active Global Manager',  ...nsxData },
+    { product: 'Standby Global Manager', ...nsxData },
   ] : [];
 
   const rows = [
     ...gmRows,
-    { clusterLabel: '', product: 'NSX-T',   ...nsxData },
-    { clusterLabel: '', product: 'vCenter', ...bomRow(src, tgt, 'vcenter', state) },
+    { product: 'NSX-T',   ...nsxData },
+    { product: 'vCenter', ...bomRow(src, tgt, 'vcenter', state) },
   ];
   for (const cl of wld.clusters) {
-    rows.push({ clusterLabel: `"${cl.name}"`, product: 'VxRail Manager',           ...bomRow(src, tgt, 'vxrail', state) });
-    rows.push({ clusterLabel: `"${cl.name}"`, product: `ESXi (0/${cl.hostCount})`, ...bomRow(src, tgt, 'esxi',   state) });
+    rows.push({ clusterHeader: cl.name });
+    rows.push({ product: 'VxRail Manager',           indent: true, ...bomRow(src, tgt, 'vxrail', state) });
+    rows.push({ product: `ESXi (0/${cl.hostCount})`, indent: true, ...bomRow(src, tgt, 'esxi',   state) });
   }
   return rows;
 }

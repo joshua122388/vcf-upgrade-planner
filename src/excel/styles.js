@@ -40,8 +40,9 @@ export const HEADER_FONT  = { bold: true,  size: 10, color: { argb: COLORS.WHITE
 export const DOMAIN_FONT  = { bold: true,  size: 9  };
 export const PRODUCT_FONT = { bold: true,  size: 9  };
 export const CELL_FONT    = { size: 9 };
-export const CLUSTER_LABEL_FONT = { size: 9, color: { argb: 'FF' + COLORS.GREY_TEXT } };
+export const CLUSTER_HEADER_FONT = { bold: true, italic: true, size: 9, color: { argb: 'FF' + COLORS.GREY_TEXT } };
 export const HEALTHY_FONT = { bold: true, size: 9, color: { argb: 'FF' + COLORS.HEALTHY } };
 export const PENDING_FONT = { bold: true, size: 9, color: { argb: 'FF' + COLORS.PENDING } };
 
 export const CENTER_ALIGN = { horizontal: 'center', vertical: 'middle', wrapText: true };
+export const INDENT_ALIGN = { horizontal: 'left', vertical: 'middle', wrapText: true, indent: 2 };
