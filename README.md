@@ -4,6 +4,14 @@ A browser-based wizard that generates a formatted `.xlsx` upgrade plan for VCF o
 
 ---
 
+## Supported versions
+
+5.1.0, 5.1.1, 5.2.0, 5.2.1, 5.2.1.1, 5.2.2, 5.2.3, 5.2.4
+
+This list mirrors the keys in `src/bom.js` — see [Adding new VCF versions](#adding-new-vcf-versions) below to add one.
+
+---
+
 ## How to open
 
 ### Option A — Local HTTP server (recommended, avoids browser ES module restrictions)
